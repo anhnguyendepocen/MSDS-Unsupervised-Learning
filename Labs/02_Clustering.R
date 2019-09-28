@@ -38,3 +38,4 @@ km.out$tot.withinss
 km.out <- kmeans(x, 3, nstart = 20)
 km.out$tot.withinss
 
+
