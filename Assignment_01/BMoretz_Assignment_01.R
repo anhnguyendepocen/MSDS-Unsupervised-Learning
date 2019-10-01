@@ -158,3 +158,27 @@ ggplot(symbol.info, aes(x = -PC1, y = -PC2, label = Symbol, color = Industry)) +
                                face = "bold"), # Y axis text
     plot.margin = unit(c(0, 1, 1, 1), "cm")
   )
+
+# Plot the default scree plot;
+plot(returns.pca)
+
+# Make Scree Plot
+scree.values <- (returns.pca$sdev^2)/sum(returns.pca$sdev^2);
+
+plot(scree.values,xlab='Number of Components',ylab='',type='l',lwd=2)
+points(scree.values,lwd=2,cex=1.5)
+title('Scree Plot')
+
+
+# Make Proportion of Variance Explained
+variance.values <- cumsum(returns.pca$sdev^2)/sum(returns.pca$sdev^2);
+
+plot(variance.values,xlab='Number of Components',ylab='',type='l',lwd=2)
+points(variance.values,lwd=2,cex=1.5)
+abline(h=0.8,lwd=1.5,col='red')
+abline(v=8,lwd=1.5,col='red')
+text(13,0.5,'Keep 8 Principal Components',col='red')
+title('Total Variance Explained Plot')
+
+
+
