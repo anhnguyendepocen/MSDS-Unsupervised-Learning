@@ -165,9 +165,44 @@ plot(returns.pca)
 # Make Scree Plot
 scree.values <- (returns.pca$sdev^2)/sum(returns.pca$sdev^2);
 
-plot(scree.values,xlab='Number of Components',ylab='',type='l',lwd=2)
+plot(scree.values, xlab='Number of Components',ylab='',type='l',lwd=2)
 points(scree.values,lwd=2,cex=1.5)
 title('Scree Plot')
+
+ggplot(data.table( y = scree.values)[, x := .I], aes(x, y)) +
+  geom_path() +
+  geom_point(aes(color = "red")) +
+  labs(title = "Scree Plot of Principal Compoenents", x = "Components", y = "") +
+  #geom_hline(yintercept = 1, color = "red", type = "dashed")
+  theme_gdocs(base_size = 12) +
+  theme(
+    plot.background = element_rect(fill = "#F2F2F2"),
+    panel.background = element_rect(fill = "#FFFFFF", colour = "grey50"),
+    plot.title = element_text(size = 22,
+                              face = "bold",
+                              color = "#1C93D1",
+                              hjust = 0.5,
+                              lineheight = 1.2), # title
+    panel.border = element_rect(colour = "#d3d3d3"),
+    plot.subtitle = element_text(size = 15,
+                                 face = "bold",
+                                 hjust = 0.5), # subtitle
+    plot.caption = element_text(size = 15), # caption
+    axis.title.x = element_text(vjust = 0,
+                                size = 16,
+                                color = "#1C93D1",
+                                face = "bold"), # X axis title
+    axis.title.y = element_text(size = 16,
+                                color = "#1C93D1",
+                                face = "bold"), # Y axis title
+    axis.text.x = element_text(size = 12,
+                               face = "bold",
+                               vjust = 0), # X axis text
+    axis.text.y = element_text(size = 12,
+                               face = "bold"), # Y axis text
+    plot.margin = unit(c(0, 1, 1, 1), "cm"),
+    legend.position = "none"
+  )
 
 
 # Make Proportion of Variance Explained
@@ -180,5 +215,94 @@ abline(v=8,lwd=1.5,col='red')
 text(13,0.5,'Keep 8 Principal Components',col='red')
 title('Total Variance Explained Plot')
 
+ggplot(data.table(y = variance.values)[, x := .I], aes(x,y)) + 
+  geom_path(lwd = .8) +
+  geom_point(color = "red", lwd = 4, shape = 1) +
+  geom_vline(xintercept = 8, color = "cornflowerblue", lwd = 1.2) +
+  geom_hline(yintercept = .8, color = "cornflowerblue", lwd = 1.2) +
+  theme_gdocs(base_size = 12) +
+  labs(title = "Total Variance Explained Plot", x = "Number of Componenets", y = "Total Variance Explained") +
+  theme(
+    plot.background = element_rect(fill = "#F2F2F2"),
+    panel.background = element_rect(fill = "#FFFFFF", colour = "grey50"),
+    plot.title = element_text(size = 22,
+                              face = "bold",
+                              color = "#1C93D1",
+                              hjust = 0.5,
+                              lineheight = 1.2), # title
+    panel.border = element_rect(colour = "#d3d3d3"),
+    plot.subtitle = element_text(size = 15,
+                                 face = "bold",
+                                 hjust = 0.5), # subtitle
+    plot.caption = element_text(size = 15), # caption
+    axis.title.x = element_text(vjust = 0,
+                                size = 16,
+                                color = "#1C93D1",
+                                face = "bold"), # X axis title
+    axis.title.y = element_text(size = 16,
+                                color = "#1C93D1",
+                                face = "bold"), # Y axis title
+    axis.text.x = element_text(size = 12,
+                               face = "bold",
+                               vjust = 0), # X axis text
+    axis.text.y = element_text(size = 12,
+                               face = "bold"), # Y axis text
+    plot.margin = unit(c(0, 1, 1, 1), "cm"),
+    legend.position = "none"
+  )
 
+# Create the data frame of PCA predictor variables;
+return.scores <- as.data.frame(returns.pca$scores);
+return.scores$VV <- returns.df$VV;
+return.scores$u <- runif(n=dim(return.scores)[1],min=0,max=1);
+head(return.scores)
+
+return.scores[, c("Comp.1", "Comp.2")]
+
+ggplot(return.scores, aes( x = Comp.1, y = Comp.2)) +
+  geom_point()
+
+# Split the data set into train and test data sets;
+train.scores <- subset(return.scores,u<0.70);
+test.scores <- subset(return.scores,u>=0.70);
+dim(train.scores)
+dim(test.scores)
+dim(train.scores)+dim(test.scores)
+dim(return.scores)
+
+# Fit a linear regression model using the first 8 principal components;
+pca1.lm <- lm(VV ~ Comp.1+Comp.2+Comp.3+Comp.4+Comp.5+Comp.6+Comp.7+Comp.8, data=train.scores);
+summary(pca1.lm)
+
+# Compute the Mean Absolute Error on the training sample;
+pca1.mae.train <- mean(abs(train.scores$VV-pca1.lm$fitted.values));
+vif(pca1.lm)
+
+# Score the model out-of-sample and compute MAE;
+pca1.test <- predict(pca1.lm,newdata=test.scores);
+pca1.mae.test <- mean(abs(test.scores$VV-pca1.test));
+
+# Let's compare the PCA regression model with a 'raw' regression model;
+# Create a train/test split of the returns data set to match the scores data set;
+returns.df$u <- return.scores$u;
+train.returns <- subset(returns.df,u<0.70);
+test.returns <- subset(returns.df,u>=0.70);
+dim(train.returns)
+dim(test.returns)
+dim(train.returns)+dim(test.returns)
+dim(returns.df)
+
+
+# Fit model.1 on train data set and score on test data;
+model.1 <- lm(VV ~ GS+DD+DOW+HON+HUN+JPM+KO+MMM+XOM, data=train.returns)
+model1.mae.train <- mean(abs(train.returns$VV-model.1$fitted.values));
+model1.test <- predict(model.1,newdata=test.returns);
+model1.mae.test <- mean(abs(test.returns$VV-model1.test));
+
+
+# Fit model.2 on train data set and score on test data;
+model.2 <- lm(VV ~ AA+BAC+GS+JPM+WFC+BHI+CVX+DD+DOW+DPS+HAL+HES+HON+HUN+KO+MMM+MPC+PEP+SLB+XOM, data=train.returns)
+model2.mae.train <- mean(abs(train.returns$VV-model.2$fitted.values));
+model2.test <- predict(model.2,newdata=test.returns);
+model2.mae.test <- mean(abs(test.returns$VV-model2.test));
 
