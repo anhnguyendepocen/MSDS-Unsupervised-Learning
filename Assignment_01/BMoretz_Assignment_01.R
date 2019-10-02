@@ -6,8 +6,16 @@ library(ggplot2)
 library(ggthemes)
 library(ggfortify)
 library(RColorBrewer)
+library(formattable)
 
-theme_set(theme_gdocs())
+theme_set(theme_light())
+
+# Theme Overrides
+theme_update(plot.title = element_text(hjust = 0.5),
+             axis.text.x = element_text(size = 10),
+             axis.text.y = element_text(size = 10),
+             axis.title = element_text(face = "bold", size = 12, colour = "steelblue4"),
+             legend.position = "top", legend.title = element_blank())
 
 path.data <- "D:/Projects/MSDS-Unsupervised-Learning/datasets"
 setwd(path.data)
@@ -299,10 +307,36 @@ model1.mae.train <- mean(abs(train.returns$VV-model.1$fitted.values));
 model1.test <- predict(model.1,newdata=test.returns);
 model1.mae.test <- mean(abs(test.returns$VV-model1.test));
 
+length(model.1$coefficients)
 
 # Fit model.2 on train data set and score on test data;
 model.2 <- lm(VV ~ AA+BAC+GS+JPM+WFC+BHI+CVX+DD+DOW+DPS+HAL+HES+HON+HUN+KO+MMM+MPC+PEP+SLB+XOM, data=train.returns)
 model2.mae.train <- mean(abs(train.returns$VV-model.2$fitted.values));
 model2.test <- predict(model.2,newdata=test.returns);
 model2.mae.test <- mean(abs(test.returns$VV-model2.test));
+
+length(model.2$coefficients)
+
+model.scores <- data.table( model = c("pca1.lm", "model.1", "model.2"), 
+                            train = c(pca1.mae.train, model1.mae.train, model2.mae.train ),
+                            test = c(pca1.mae.test, model1.mae.test, model2.mae.test))
+
+model.scores$train <- round(model.scores$train, 4)
+model.scores$test <- round(model.scores$test, 4)
+
+formattable(model.scores, align = c("l", "c", "c", "c", "c", "r"),
+            list(`Indicator Name` = formatter("span", style = ~style(color = "grey", font.weight = "bold"))
+))
+
+full.lm <- lm(VV ~ ., data=train.scores);
+summary(full.lm)
+
+library(MASS)
+backward.lm <- stepAIC(full.lm,direction=c('backward'))
+summary(backward.lm)
+backward.mae.train <- mean(abs(train.scores$VV-backward.lm$fitted.values));
+vif(backward.lm)
+
+backward.test <- predict(backward.lm,newdata=test.scores);
+backward.mae.test <- mean(abs(test.scores$VV-backward.test));
 
