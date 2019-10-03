@@ -340,3 +340,24 @@ vif(backward.lm)
 backward.test <- predict(backward.lm,newdata=test.scores);
 backward.mae.test <- mean(abs(test.scores$VV-backward.test));
 
+##############################
+# t-SNE Analysis
+##############################
+
+tsne.data <- returns.cor[-21,-21]
+
+tsne_vis <- function( perplexity = 1, learning = 20, iterations = 5000) {
+  
+  set.seed(1)
+  tsne <- Rtsne(tsne.data, dims = 2, perplexity=perplexity, verbose =TRUE, max_iter = iterations, learning = learning)
+  tsne.results <- data.table(x = tsne$Y[,1], y = tsne$Y[,2], Symbol = row.names(tsne.data))
+  tsne.results <- merge(tsne.results, symbol.info, by = c("Symbol"))[, c("PC1", "PC2") := NULL]
+  
+  ggplot(tsne.results, aes(x, y, label = Symbol, color = Industry)) +
+    geom_text() +
+    labs(title = paste("t-SNE: P=", perplexity, " L=", learning, "Iterations=", iterations ), x = "tSNE dimension 1", y = "tSNE dimension 2") +
+    theme(legend.position = "right")
+}
+
+tsne_vis(perplexity = 6, learning = 50, iterations = 5000)
+

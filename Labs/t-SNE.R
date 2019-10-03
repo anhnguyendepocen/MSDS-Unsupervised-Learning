@@ -9,7 +9,14 @@ library(RColorBrewer)
 library(tidyverse)
 library(Rtsne)
 
-theme_set(theme_gdocs())
+theme_set(theme_light())
+
+# Theme Overrides
+theme_update(plot.title = element_text(hjust = 0.5),
+             axis.text.x = element_text(size = 10),
+             axis.text.y = element_text(size = 10),
+             axis.title = element_text(face = "bold", size = 12, colour = "steelblue4"),
+             legend.position = "top", legend.title = element_blank())
 
 path.data <- "D:/Projects/MSDS-Unsupervised-Learning/datasets"
 setwd(path.data)
@@ -18,10 +25,9 @@ setwd(path.data)
 # Data load and prep
 ###########################
 
-tsne_data <- read_csv("bodyfat.csv")
+tsne_data <- as.data.table(read_csv("bodyfat.csv"))
 
-head(bodyfat.data)
-
+head(tsne_data)
 
 ###########################
 # Exploratory Data Analysis
