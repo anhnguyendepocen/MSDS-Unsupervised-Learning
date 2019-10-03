@@ -344,13 +344,13 @@ backward.mae.test <- mean(abs(test.scores$VV-backward.test));
 # t-SNE Analysis
 ##############################
 
-tsne.data <- returns.cor[-21,-21]
+tsne.cor <- returns.cor[-21,-21]
 
 tsne_vis <- function( perplexity = 1, learning = 20, iterations = 5000) {
   
   set.seed(1)
-  tsne <- Rtsne(tsne.data, dims = 2, perplexity=perplexity, verbose =TRUE, max_iter = iterations, learning = learning)
-  tsne.results <- data.table(x = tsne$Y[,1], y = tsne$Y[,2], Symbol = row.names(tsne.data))
+  tsne <- Rtsne(tsne.cor, dims = 2, perplexity=perplexity, verbose =TRUE, max_iter = iterations, learning = learning)
+  tsne.results <- data.table(x = tsne$Y[,1], y = tsne$Y[,2], Symbol = row.names(tsne.cor))
   tsne.results <- merge(tsne.results, symbol.info, by = c("Symbol"))[, c("PC1", "PC2") := NULL]
   
   ggplot(tsne.results, aes(x, y, label = Symbol, color = Industry)) +
@@ -360,4 +360,24 @@ tsne_vis <- function( perplexity = 1, learning = 20, iterations = 5000) {
 }
 
 tsne_vis(perplexity = 6, learning = 50, iterations = 5000)
+
+tsne.ret <- t(returns.df[, -c(21, 22)])
+
+tsne_ret_vis <- function( perplexity = 1, learning = 20, iterations = 5000) {
+  
+  set.seed(1)
+  tsne <- Rtsne(tsne.ret, dims = 2, perplexity=perplexity, verbose =TRUE, max_iter = iterations, learning = learning)
+  tsne.results <- data.table(x = tsne$Y[,1], y = tsne$Y[,2], Symbol = row.names(tsne.ret))
+  tsne.results <- merge(tsne.results, symbol.info, by = c("Symbol"))[, c("PC1", "PC2") := NULL]
+  
+  ggplot(tsne.results, aes(x, y, label = Symbol, color = Industry)) +
+    geom_text() +
+    labs(title = paste("t-SNE: P=", perplexity, " L=", learning, "Iterations=", iterations ), x = "tSNE dimension 1", y = "tSNE dimension 2") +
+    theme(legend.position = "right")
+  
+  tsne.results
+}
+
+tsne.results <- tsne_ret_vis(3, 15, 5000)
+
 
