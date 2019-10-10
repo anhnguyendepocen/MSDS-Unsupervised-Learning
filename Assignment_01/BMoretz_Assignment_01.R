@@ -23,7 +23,7 @@ setwd(path.data)
 # Load Stock Data
 
 stock.data <- read_excel("stockdata.xlsx",
-                          col_types = c("date", rep("numeric", 42)))
+                         col_types = c("date", rep("numeric", 42)))
 
 head(stock.data)
 str(stock.data)
@@ -326,7 +326,7 @@ model.scores$test <- round(model.scores$test, 4)
 
 formattable(model.scores, align = c("l", "c", "c", "c", "c", "r"),
             list(`Indicator Name` = formatter("span", style = ~style(color = "grey", font.weight = "bold"))
-))
+            ))
 
 full.lm <- lm(VV ~ ., data=train.scores);
 summary(full.lm)

@@ -25,9 +25,10 @@ setwd(path.data)
 # Data load and prep
 ###########################
 
-tsne_data <- as.data.table(read_csv("bodyfat.csv"))
+tsne_data <- as.data.table(read_csv("bodyfat.csv"))[, c("Age", "Density") := NULL]
 
 head(tsne_data)
+
 
 ###########################
 # Exploratory Data Analysis
@@ -39,7 +40,7 @@ summary(tsne_data)
 
 # using rtsne
 set.seed(1) # for reproducibility
-tsne <- Rtsne(tsne_data %>% select(-Density, -Age), dims = 2, perplexity=30, verbose=TRUE, max_iter = 5000, learning = 200)
+tsne <- Rtsne(tsne_data, dims = 2, perplexity=30, verbose=TRUE, max_iter = 5000, learning = 200)
 
 # visualizing
 colors = rainbow(length(unique(tsne_data$agegroup)))
@@ -49,6 +50,11 @@ par(mgp=c(2.5,1,0))
 
 plot(tsne$Y, t='n', main="tSNE", xlab="tSNE dimension 1", ylab="tSNE dimension 2", cex.main=2, cex.lab=1.5)
 text(tsne$Y, labels = tsne_data$agegroup, col = colors[tsne_data$agegroup])
+
+tsne.results <- data.table(x = tsne$Y[,1], y = tsne$Y[,2], group = tsne_data$agegroup)
+
+ggplot(tsne.results, aes(x, y, label = group, color = group)) +
+  geom_text()
 
 # train and plot using different parameters
 tsne_plot <- function(perpl=30,iterations=500,learning=200){
