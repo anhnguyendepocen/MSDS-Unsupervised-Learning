@@ -247,7 +247,101 @@ p2 <- ggplot(education, aes(sample = deviation)) +
 
 grid.arrange(p1, p2, nrow = 2)
 
+AIC(education_fit)
+BIC(education_fit)
+
+mse(bfi.train$education, predict(education_fit))
+
 round(sum(bfi.train$education == as.vector(round(predict(education_fit, type = "response")))) / nrow(bfi.train), 4) * 100
 
+ggplot(education) +
+  geom_point(aes(education, pred))
+  
 
-      
+#####################################################################
+### Personality
+
+ggplot(bfi.train, aes(education)) +
+  geom_histogram()
+
+summary(education_fit <- lm(data = bfi.train, formula = education ~ F1 + F2 + F3 + F4 + F5))
+
+mse(bfi.train$education, predict(education_fit))
+AIC(education_fit)
+BIC(education_fit)
+
+summary(education_fit)
+
+round(coef(education_fit), 3)
+
+education <- bfi.train[, .(education)]
+
+education$deviation <- resid(education_fit, type = "deviance")
+education$pred <- predict(education_fit, type = "response")
+
+p1 <- ggplot(education, aes(pred, deviation)) +
+  geom_point() +
+  geom_hline(aes(yintercept = 0, col = "red"), lwd = 1) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(title = "Deviation vs Fitted") +
+  theme(legend.position = 'none')
+
+p2 <- ggplot(education, aes(sample = deviation)) +
+  geom_qq() +
+  geom_qq_line()
+
+grid.arrange(p1, p2, nrow = 2)
+
+AIC(education_fit)
+BIC(education_fit)
+
+mse(bfi.train$education, predict(education_fit))
+
+round(sum(bfi.train$education == as.vector(round(predict(education_fit, type = "response")))) / nrow(bfi.train), 4) * 100
+
+ggplot(education) +
+  geom_point(aes(education, pred))
+
+#####################################################################
+### Personality
+
+ggplot(bfi.train, aes(age)) +
+  geom_histogram()
+
+summary(age_fit <- glm(data = bfi.train, formula = age ~ F1 + F2 + F3 + F4 + F5, family = "quasipoisson"))
+
+mse(bfi.train$age, predict(age_fit))
+AIC(age_fit)
+BIC(age_fit)
+
+summary(age_fit)
+
+round(coef(age_fit), 3)
+
+age <- bfi.train[, .(age)]
+
+age$deviation <- resid(age_fit, type = "deviance")
+age$pred <- predict(age_fit, type = "response")
+
+p1 <- ggplot(age, aes(pred, deviation)) +
+  geom_point() +
+  geom_hline(aes(yintercept = 0, col = "red"), lwd = 1) +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(title = "Deviation vs Fitted") +
+  theme(legend.position = 'none')
+
+p2 <- ggplot(age, aes(sample = deviation)) +
+  geom_qq() +
+  geom_qq_line()
+
+grid.arrange(p1, p2, nrow = 2)
+
+AIC(age_fit)
+BIC(age_fit)
+
+mse(bfi.train$age, predict(age_fit))
+
+round(sum(bfi.train$age == as.vector(round(predict(age_fit, type = "response")))) / nrow(bfi.train), 4) * 100
+
+ggplot(education) +
+  geom_point(aes(education, pred))
