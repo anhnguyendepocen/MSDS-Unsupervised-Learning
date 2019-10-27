@@ -1,5 +1,28 @@
+library(data.table)
+library(readxl)
+library(dplyr)
+library(corrplot)
+library(ggplot2)
+library(ggthemes)
+library(ggfortify)
+library(RColorBrewer)
+library(formattable)
 
-mydata<-data.frame(FloridaLakes)
+theme_set(theme_light())
+
+# Theme Overrides
+theme_update(plot.title = element_text(hjust = 0.5),
+             axis.text.x = element_text(size = 10),
+             axis.text.y = element_text(size = 10),
+             axis.title = element_text(face = "bold", size = 12, colour = "steelblue4"),
+             legend.position = "top", legend.title = element_blank())
+
+path.data <- "D:/Projects/MSDS-Unsupervised-Learning/datasets"
+
+setwd(path.data)
+
+mydata <- data.frame(read_excel("FloridaLakes.xls"))
+
 x1<-mydata$ID
 x2<-mydata$Lake
 x3<-mydata$Alkalinity
