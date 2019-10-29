@@ -19,7 +19,10 @@ theme_update(axis.text.x = element_text(size = 10),
              axis.title = element_text(face = "bold", size = 12, colour = "steelblue4"),
              plot.subtitle = element_text(face = "bold", size = 8, colour = "darkred"),
              legend.title = element_text(size = 12, color = "darkred", face = "bold"),
-             legend.position = "right", legend.title.align=0.5)
+             legend.position = "right", legend.title.align=0.5,
+             panel.border = element_rect(linetype = "solid", 
+                                         colour = "lightgray"), 
+             plot.margin = unit(c( 0.1, 0.1, 0.1, 0.1), "inches"))
 
 path.data <- "D:/Projects/MSDS-Unsupervised-Learning/datasets"
 
@@ -131,9 +134,94 @@ ggplot(data.table(x = fit2$points[, 1], y = fit2$points[, 2]), aes(x, y)) +
 ##### Self-Organizing Maps
 #############
 
-data.college <- read.csv("college_acceptance.csv")
+data.college <- as.data.table(read.csv("college_acceptance.csv"))
+
+data.college %>%
+  gather(variable, value, -admit) %>%
+  ggplot(aes(y = as.factor(variable),
+             fill = as.factor(admit),
+             x = percent_rank(value))) +
+  geom_density_ridges() +
+  ggtitle('Admittance Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x = 'variable', y = 'value', fill = 'Admit (Yes/No)')
 
 ggplot(data.college, aes(rank, y = ..density..)) +
   geom_histogram(aes(fill = ..count..)) +
   geom_density(col = "red", lwd = 1) +
   labs(title = "College Ranks")
+
+ggplot(data.college, aes(gpa, y = ..density..)) +
+  geom_histogram(aes(fill = ..count..)) +
+  geom_density(col = "red", lwd = 1) +
+  labs(title = "Student GPA")
+
+ggplot(data.college, aes(gre, y = ..density..)) +
+  geom_histogram(aes(fill = ..count..)) +
+  geom_density(col = "red", lwd = 1) +
+  labs(title = "Student GRE")
+
+p1 <- ggplot(data.college, aes(y = gre, group = admit)) +
+  geom_boxplot(aes(fill = admit)) +
+  labs(title = "Student GRE by Admit")
+
+p2 <- ggplot(data.college, aes(y = gpa, group = admit)) +
+  geom_boxplot(aes(fill = admit)) +
+  labs(title = "Student GPA by Admit")
+
+grid.arrange(p1, p2, nrow = 1)
+
+data.college$s_gre <- scale(data.college$gre)
+data.college$s_gpa <- scale(data.college$gpa)
+data.college$s_rank <- scale(data.college$rank)
+
+data.college %>%
+  select(c(-gpa, -gre, -rank)) %>%
+  gather(variable, value, -admit) %>%
+  ggplot(aes(y = as.factor(variable),
+             fill = as.factor(admit),
+             x = percent_rank(value))) +
+  geom_density_ridges() +
+  ggtitle('Admittance Distributions') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x = 'variable', y = 'value', fill = 'Admit (Yes/No)')
+
+
+distances <- c("sumofsquares")
+data.list = list()
+factors <- c("admit")
+
+data.list[["admit"]] <- classvec2classmat(data.college$admit)
+data.list[["numerics"]] <- as.matrix(data.college[, .(admit, s_gpa, s_gre, s_rank)])
+
+map.dimension = find_grid_size(dim(data.college)[1])
+
+college.epochs <- 2000
+
+# create a grid onto which the som will be mapped
+som.grid <- somgrid(xdim = 8,
+                    ydim = 9,
+                    topo = "rectangular")
+
+# train the SOM
+cc.som <- supersom(data.list,
+                  grid = som.grid,
+                  rlen = college.epochs,
+                  alpha = c(0.1, 0.01),
+                  whatmap = c('admit', 'numerics'),
+                  dist.fcts = c(distances, 'tanimoto'),
+                  keep.data = TRUE
+)
+
+plot(cc.som, type = "changes")
+
+plot(cc.som, type = "counts", palette.name = coolBlueHotRed)
+
+cc.som$unit.classif
+observations_by_node <- get_node_counts(cc.som$unit.classif)
+
+round(mean(observations_by_node$observations), 2)
+
+plot(cc.som, type = "dist.neighbours", palette.name = coolBlueHotRed)0
+
+plot(cc.som, type = "codes", palette.name = coolBlueHotRed)
