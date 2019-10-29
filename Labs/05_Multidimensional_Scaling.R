@@ -67,6 +67,7 @@ d2 <- dist(mydata1) # euclidean distances between the rows
 fit <- isoMDS(d2, k=2) # k is the number of dim
 fit # view results
 
+
 # plot solution
 x <- fit$points[,1]
 y <- fit$points[,2]
