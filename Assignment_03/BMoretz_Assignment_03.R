@@ -205,12 +205,12 @@ som.grid <- somgrid(xdim = 8,
 
 # train the SOM
 cc.som <- supersom(data.list,
-                  grid = som.grid,
-                  rlen = college.epochs,
-                  alpha = c(0.1, 0.01),
-                  whatmap = c('admit', 'numerics'),
-                  dist.fcts = c(distances, 'tanimoto'),
-                  keep.data = TRUE
+                   grid = som.grid,
+                   rlen = college.epochs,
+                   alpha = c(0.1, 0.01),
+                   whatmap = c('admit', 'numerics'),
+                   dist.fcts = c(distances, 'tanimoto'),
+                   keep.data = TRUE
 )
 
 plot(cc.som, type = "changes")
@@ -222,6 +222,6 @@ observations_by_node <- get_node_counts(cc.som$unit.classif)
 
 round(mean(observations_by_node$observations), 2)
 
-plot(cc.som, type = "dist.neighbours", palette.name = coolBlueHotRed)0
+plot(cc.som, type = "dist.neighbours", palette.name = coolBlueHotRed)
 
 plot(cc.som, type = "codes", palette.name = coolBlueHotRed)
