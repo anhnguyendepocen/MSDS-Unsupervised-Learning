@@ -551,15 +551,6 @@ ggplot(pc, aes(X, Y)) +
   guides(col = "none", size = "none") +
   ggtitle("Recidivism Principal Components")
 
-# pca / kmeans clustering with k=3 clusters
+# pca / kmeans clustering
 
-results <- kmeans(pc[, 2:3],3)
-names(k3.results)
-pca.knn3.BetSSPer <- pca.k3.results$betweenss/pca.k3.results$totss
-pca.knn3.BetSSPer
-pca.k3.results$totss
-
-# cluster plots for kmeans
-
-clusplot(pc[, 2:3], pca.k3.results$cluster, color=TRUE, shade=TRUE, 
-         labels=2, lines=0)
+recid_knn(pc[, 2:3], 4)
