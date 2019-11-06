@@ -22,7 +22,11 @@ group<-cutree(hc.average, 2)
 group
 
 
-mydata<-data.frame(FloridaLakes)
+path.data <- "D:/Projects/MSDS-Unsupervised-Learning/datasets"
+
+setwd(path.data)
+
+mydata <- data.frame(read.csv("FloridaLakes.csv"))
 
 x1<-mydata$ID
 x2<-mydata$Lake
