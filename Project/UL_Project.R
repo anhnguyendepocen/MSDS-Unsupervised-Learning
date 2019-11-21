@@ -154,9 +154,10 @@ str(housing.relationships)
 
 # Post clean-up data
 
-housing.complete <- cbind(data.label, housing.relationships)
-housing.complete <- housing.complete[complete.cases(housing.relationships)]
-housing.complete <- housing.complete[-1,]
+dupes <- duplicated(housing.relationships)
+
+housing.complete <- cbind(data.label[!dupes], housing.relationships[!dupes])
+housing.complete <- housing.complete[complete.cases(housing.relationships[!dupes])]
 
 str(housing.complete)
 dim(housing.complete)
@@ -164,6 +165,21 @@ dim(housing.complete)
 housing.numeric.col <- unlist(lapply(housing.complete, is.numeric))
 housing.numeric <- housing.complete[, housing.numeric.col, with = F]
 housing.label <- housing.complete[, !housing.numeric.col, with = F]
+
+# Custom Attributes, used in further analysis
+
+summary(housing.complete$OverallQual)
+
+housing.complete$QualGroup <- cut(housing.complete$OverallQual, seq(0, 10, 2))
+
+value.groups <- 6
+
+housing.complete[, ValueGroup := cut(SalePrice, value.groups, dig.lab = 5)]
+value.labs <- levels(cut(housing.complete$SalePrice, value.groups))
+value.labels <- data.table(cbind(lower = dollar( as.numeric( sub("\\((.+),.*", "\\1", value.labs) ) ),
+                                 upper = dollar( as.numeric( sub("[^,]*,([^]]*)\\]", "\\1", value.labs)))))
+value.labels[, label := paste(lower, "-", upper)]
+levels(housing.complete$ValueGroup) <- value.labels$label
 
 # Variable Correlations
 
@@ -210,23 +226,10 @@ ggbiplot(housing.pca, groups = housing.complete$BldgType)
 
 ggbiplot(housing.pca, groups = housing.complete$YrSold)
 
-# Custom Attributes, used in further analysis
-
-summary(housing.complete$OverallQual)
-
-housing.complete$QualGroup <- cut(housing.complete$OverallQual, seq(0, 10, 2))
+# Custom Attributes
 
 ggbiplot(housing.pca, ellipse = T, groups = housing.complete$QualGroup) +
   labs(title = "Quality Groups")
-
-value.groups <- 6
-
-housing.complete[, ValueGroup := cut(SalePrice, value.groups, dig.lab = 5)]
-value.labs <- levels(cut(housing.complete$SalePrice, value.groups))
-value.labels <- data.table(cbind(lower = dollar( as.numeric( sub("\\((.+),.*", "\\1", value.labs) ) ),
-                                 upper = dollar( as.numeric( sub("[^,]*,([^]]*)\\]", "\\1", value.labs)))))
-value.labels[, label := paste(lower, "-", upper)]
-levels(housing.complete$ValueGroup) <- value.labels$label
 
 ggbiplot(housing.pca, ellipse = T, groups = housing.complete$ValueGroup) +
   guides(color=guide_legend("Value", labels = comma)) +
