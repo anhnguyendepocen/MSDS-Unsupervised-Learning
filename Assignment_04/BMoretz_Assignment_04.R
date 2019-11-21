@@ -84,42 +84,42 @@ ggplot(eur.employment, aes(TC, FIN, col = Group)) +
 # Normal
 
 apply(my.data[,-c(1,2)],MARGIN=1,FUN=sum)
-pca.out <- princomp(x=my.data[,-c(1,2)],cor=FALSE);
+pca.out <- princomp(x=eur.employment[,-c(1,2)],cor=FALSE);
 names(pca.out)
 
 pc.1 <- pca.out$scores[,1];
 pc.2 <- pca.out$scores[,2];
 str(pc.1)
 pcdf = data.frame(pc1=pc.1, pc2=pc.2)
-pcdf1 = cbind(pcdf,my.data$Country)
-pcdf2 = cbind(pcdf1,my.data$Group)
+pcdf1 = cbind(pcdf,eur.employment$Country)
+pcdf2 = cbind(pcdf1,eur.employment$Group)
 str(pcdf2)
 
 colnames(pcdf2) <- c("PC1", "PC2", "Country", "Group")
 
 ggplot(pcdf2, aes(x= PC1, y = PC2, colour = Group, label = Country)) + 
-  geom_point() + geom_text(aes(label=my.data$Country),hjust=0, vjust=0) +
+  geom_point() + geom_text(aes(label=eur.employment$Country),hjust=0, vjust=0) +
   ggtitle("Scatter Plot PC1 vs PC2") +
   theme(plot.title=element_text(lineheight=0.8, face="bold", hjust=0.5))
 
 # Scaled
 
-apply(my.data[,-c(1,2)],MARGIN=1,FUN=sum)
-pca.out <- princomp( x = scale(my.data[,-c(1,2)]), cor=FALSE);
+apply(eur.employment[,-c(1,2)],MARGIN=1,FUN=sum)
+pca.out <- princomp( x = scale(eur.employment[,-c(1,2)]), cor=FALSE);
 names(pca.out)
 
 pc.1 <- pca.out$scores[,1];
 pc.2 <- pca.out$scores[,2];
 str(pc.1)
 pcdf = data.frame(pc1=pc.1, pc2=pc.2)
-pcdf1 = cbind(pcdf,my.data$Country)
-pcdf2 = cbind(pcdf1,my.data$Group)
+pcdf1 = cbind(pcdf,eur.employment$Country)
+pcdf2 = cbind(pcdf1,eur.employment$Group)
 str(pcdf2)
 
 colnames(pcdf2) <- c("PC1", "PC2", "Country", "Group")
 
 ggplot(pcdf2, aes(x= PC1, y = PC2, colour = Group, label = Country)) + 
-  geom_point() + geom_text(aes(label=my.data$Country),hjust=0, vjust=0) +
+  geom_point() + geom_text(aes(label=eur.employment$Country),hjust=0, vjust=0) +
   ggtitle("Scatter Plot PC1 vs PC2 (Scaled)") +
   theme(plot.title=element_text(lineheight=0.8, face="bold", hjust=0.5))
 

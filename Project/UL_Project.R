@@ -27,6 +27,9 @@ library(psych)
 library(ggcorrplot)
 library(ggbiplot)
 library(corrplot)
+library(RColorBrewer)
+library(ggdendro)
+library(dendextend)
 
 #####################################################################
 ######################### Unsupervised Learning #####################
@@ -92,6 +95,21 @@ plot.vv <- function( pca, threshold = .8 ) {
     labs(title = "Total Variance Explained", 
          x = "Number of Componenets", 
          y = "Total Variance Explained")
+}
+
+plot.pca.loadings <- function(pca) {
+  pc.1 <- pca$loadings[,1]; pc.2 <- pca$loadings[,2]
+  
+  colfunc<-colorRampPalette(c("red","yellow","springgreen","royalblue"))
+  
+  pc <- data.table( Name = names(pc.1), X = pc.1, Y = pc.2)
+  pc$col <- colfunc(nrow(pc))
+  
+  ggplot(pc, aes(X, Y)) +
+    geom_text(aes(label = Name, col = col, size = 15)) +
+    labs(x = "Component 1", y = "Component 2") +
+    guides(col = "none", size = "none") +
+    ggtitle("AMES Housing Principal Components")
 }
 
 # Initial split by attribute type
@@ -176,18 +194,15 @@ ggbiplot(housing.pca.cor) +
 plot(housing.pca.cor) # std plot
 plot.vv(housing.pca.cor, .8) # cust vv
 
+plot.pca.loadings(housing.pca.cor)
+
 # PCA -> Std 
 
-summary(housing.pca <- prcomp(housing.numeric, scale = T, center = T))
+summary(housing.pca <- prcomp(x = housing.numeric, scale = T, center = T))
 
 str(housing.pca)
 
-summary(housing.complete$OverallQual)
-
-housing.complete$QualGroup <- cut(housing.complete$OverallQual, seq(0, 10, 2))
-
-ggbiplot(housing.pca, ellipse = T, groups = housing.complete$QualGroup) +
-  labs(title = "Quality Groups")
+# Exploratory, throw away
 
 ggbiplot(housing.pca, groups = housing.complete$Neighborhood)
 
@@ -199,18 +214,108 @@ ggbiplot(housing.pca, groups = housing.complete$BldgType)
 
 ggbiplot(housing.pca, groups = housing.complete$YrSold)
 
-#################
-### Factor Analysis
-#################
+# Maybe Useful
 
-housing.fa <- fa(housing.complete.cor, nfactors = 4, )
-housing.fa$loadings
+summary(housing.complete$OverallQual)
 
-housing.fa$loadings
+housing.complete$QualGroup <- cut(housing.complete$OverallQual, seq(0, 10, 2))
 
-fa.parallel(housing.complete.cor,
-            n.obs = nrow(housing.complete.cor), 
-            fa="both", 
-            n.iter=100,
-            fm="ml",
-            show.legend=TRUE, main="Scree plot with parallel analysis")
+ggbiplot(housing.pca, ellipse = T, groups = housing.complete$QualGroup) +
+  labs(title = "Quality Groups")
+
+value.groups <- 6
+
+housing.complete[, ValueGroup := cut(SalePrice, value.groups, dig.lab = 5)]
+value.labs <- levels(cut(housing.complete$SalePrice, value.groups))
+value.labels <- data.table(cbind(lower = dollar( as.numeric( sub("\\((.+),.*", "\\1", value.labs) ) ),
+                                 upper = dollar( as.numeric( sub("[^,]*,([^]]*)\\]", "\\1", value.labs)))))
+value.labels[, label := paste(lower, "-", upper)]
+levels(housing.complete$ValueGroup) <- value.labels$label
+
+ggbiplot(housing.pca, ellipse = T, groups = housing.complete$ValueGroup) +
+  guides(color=guide_legend("Value", labels = comma)) +
+  labs(title = "Value Groups")
+
+##############################
+# t-SNE Analysis
+##############################
+
+plot_tsne_cor <- function(cor, perplexity = 1, learning = 20, iterations = 5000, title = NULL) {
+  
+  def.title = paste("t-SNE: P=", perplexity, " L=", learning, "Iterations=", iterations )
+  
+  tsne <- Rtsne(cor, dims = 2, perplexity=perplexity, verbose =TRUE, max_iter = iterations, learning = learning)
+  tsne.results <- data.table(x = tsne$Y[,1], y = tsne$Y[,2], Attribute = row.names(cor))
+  
+  ggplot(tsne.results, aes(x, y, label = Attribute)) +
+    geom_point(aes(col = Attribute), size = 3) +
+    geom_text_repel(aes(label = Attribute),
+                    size = 4, box.padding = 1.5,
+                    segment.size  = 0.2, segment.color = "grey50") +
+    labs(title = ifelse(is.null(title), def.title, title), x = "tSNE dimension 1", y = "tSNE dimension 2") +
+    theme(legend.position = "none")
+}
+
+plot_tsne_cor(housing.complete.cor, perplexity = 6, learning = 50, iterations = 5000)
+plot_tsne_cor(housing.complete.cor, perplexity = 3, learning = 25, iterations = 5000, "AMES Housing Features")
+plot_tsne_cor(housing.complete.cor, perplexity = 2, learning = 35, iterations = 5000)
+
+# Value/Quality groupings?
+
+perplexity <- 2
+learning <- 25
+iterations <- 5000
+tsne <- Rtsne(housing.numeric, dims = 2, perplexity=perplexity, verbose =TRUE, max_iter = iterations, learning = learning)
+
+tsne.results <- data.table(x = tsne$Y[,1], y = tsne$Y[,2], Attribute = housing.complete$ValueGroup)
+
+ggplot(tsne.results, aes(x, y, label = Attribute)) +
+  geom_point(aes(col = Attribute), size = 3) +
+  labs(title = paste("t-SNE: P=", perplexity, " L=", learning, "Iterations=", iterations ), x = "tSNE dimension 1", y = "tSNE dimension 2") +
+  theme(legend.position = "bottom")
+
+tsne.results <- data.table(x = tsne$Y[,1], y = tsne$Y[,2], Attribute = housing.complete$QualGroup)
+
+ggplot(tsne.results, aes(x, y, label = Attribute)) +
+  geom_point(aes(col = Attribute), size = 3) +
+  labs(title = paste("t-SNE: P=", perplexity, " L=", learning, "Iterations=", iterations ), x = "tSNE dimension 1", y = "tSNE dimension 2") +
+  theme(legend.position = "bottom")
+
+
+##############################
+# Hierarchical Clustering Analysis, PCA
+##############################
+
+housing.pc <- data.table( Name = colnames(housing.numeric), 
+                          X = housing.pca.cor$loadings[, 1], 
+                          Y = housing.pca.cor$loadings[, 2])
+
+plot.hclust.pca <- function( data, method = "complete", k = 3 ) {
+
+  # H-Clust
+  
+  pca.dist <- dist( data[, 2:3])
+  
+  pca.hclustmodel <- hclust(pca.dist, method = method)
+  
+  # Clean-up Dendro
+  pca.hc <- dendro_data(pca.hclustmodel)
+  dict <- setNames(housing.pc$Name, 1:nrow(housing.pc))
+  pca.hclustmodel$labels <- sapply(pca.hc$labels$label, function(x) dict[[as.character(x)]])
+  
+  dend <- pca.hclustmodel %>%
+    as.dendrogram %>%
+    set("branches_k_color", k=k) %>% set("branches_lwd", 1.2) %>%
+    set("labels_colors") %>% set("labels_cex", c(.6, .8)) %>% 
+    set("leaves_pch", 19)
+  
+  plot(dend) +
+    title(main = paste0("AMES Housing Attribute Clusters, k=", k))
+}
+
+?hclust
+
+plot.hclust.pca(housing.pc, method = "ward.D", k = 3)
+plot.hclust.pca(housing.pc, method = "complete", k = 4)
+plot.hclust.pca(housing.pc, method = "average", k = 6)
+plot.hclust.pca(housing.pc, method = "mcquitty", k = 6)
