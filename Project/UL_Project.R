@@ -96,14 +96,14 @@ plot.vv <- function( pca, threshold = .8 ) {
 
 # Initial split by attribute type
 
-housing.numeric.col <- unlist(lapply(data.housing, is.numeric))
-housing.numeric <- data.housing[, housing.numeric.col, with = F]
-housing.label <- data.housing[, !housing.numeric.col, with = F]
+orig.housing.numeric.col <- unlist(lapply(data.housing, is.numeric))
+orig.housing.numeric <- data.housing[, orig.housing.numeric.col, with = F]
+orig.housing.label <- data.housing[, !orig.housing.numeric.col, with = F]
 
-str(housing.numeric)
-skim(housing.numeric)
+str(orig.housing.numeric)
+skim(orig.housing.numeric)
 
-data.housing.cor <- cor(housing.numeric)
+data.housing.cor <- cor(orig.housing.numeric)
 
 # Overall correlations, keep as reference.
 
@@ -114,16 +114,20 @@ ggcorrplot(data.housing.cor,
            lab_size = 3,
            title = "Correlogram of Housing Variables")
 
-
 # Variables that have a lot of overlap in explained variance.
-housing.relationships <- housing.numeric[, -c("ThreeSsnPorch", "EnclosedPorch", "OpenPorchSF", 
-                                              "ScreenPorch", "WoodDeckSF", "PID", "MiscVal", "MoSold", 
-                                              "YrSold", "PoolArea", "LowQualFinSF", "SID",
-                                              "BsmtFinSF2", "BsmtHalfBath", "BsmtFullBath", 
-                                              "KitchenAbvGr", "BedroomAbvGr", "SecondFlrSF",
-                                              "LotFrontage", "BsmtFinSF1", "MasVnrArea",
-                                              "Fireplaces", "FirstFloorSF", "LotArea")]
+housing.relationships <- orig.housing.numeric[, -c("ThreeSsnPorch", "FirstFlrSF", "GarageYrBlt", 
+                                                   "BsmtUnfSF", "TotalBsmtSF", "logSalePrice", 
+                                                   "LotArea", "KitchenAbvGr", "Fireplaces", "MasVnrArea", 
+                                                   "BsmtFinSF1", "BedroomAbvGr", "SecondFlrSF", "LotFrontage",
+                                                   "BsmtFullBath", "BsmtHalfBath", "BsmtFinSF2", "ScreenPorch", 
+                                                   "WoodDeckSF", "PID", "MiscVal", "MoSold", "PoolArea", 
+                                                   "LowQualFinSF", "SID", "EnclosedPorch", "OpenPorchSF", 
+                                                   "GarageArea")]
+
+housing.relationships <- orig.housing.numeric
 housing.relationships.cor <- cor(housing.relationships)
+
+str(housing.numeric)
 
 # Iterate & Clean
 ggcorrplot(housing.relationships.cor,
@@ -166,10 +170,11 @@ housing.eigen <- eigen(housing.matrix)
 
 summary(housing.pca.cor <- princomp( x = housing.complete.cor, cor = T ))
 
-ggbiplot(housing.pca.cor)
+ggbiplot(housing.pca.cor) +
+  labs(title = "Variable Dimensions")
 
 plot(housing.pca.cor) # std plot
-plot.vv(housing.pca.cor, .75) # cust vv
+plot.vv(housing.pca.cor, .8) # cust vv
 
 # PCA -> Std 
 
@@ -177,10 +182,22 @@ summary(housing.pca <- prcomp(housing.numeric, scale = T, center = T))
 
 str(housing.pca)
 
+summary(housing.complete$OverallQual)
+
+housing.complete$QualGroup <- cut(housing.complete$OverallQual, seq(0, 10, 2))
+
+ggbiplot(housing.pca, ellipse = T, groups = housing.complete$QualGroup) +
+  labs(title = "Quality Groups")
+
 ggbiplot(housing.pca, groups = housing.complete$Neighborhood)
 
 ggbiplot(housing.pca, groups = housing.complete$HouseStyle)
 
+ggbiplot(housing.pca, groups = housing.complete$GarageType)
+
+ggbiplot(housing.pca, groups = housing.complete$BldgType)
+
+ggbiplot(housing.pca, groups = housing.complete$YrSold)
 
 #################
 ### Factor Analysis
