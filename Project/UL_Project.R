@@ -114,14 +114,14 @@ plot.pca.loadings <- function(pca) {
 
 # Initial split by attribute type
 
-orig.housing.numeric.col <- unlist(lapply(data.housing, is.numeric))
-orig.housing.numeric <- data.housing[, orig.housing.numeric.col, with = F]
-orig.housing.label <- data.housing[, !orig.housing.numeric.col, with = F]
+data.numeric.col <- unlist(lapply(data.housing, is.numeric))
+data.numeric <- data.housing[, data.numeric.col, with = F]
+data.label <- data.housing[, !data.numeric.col, with = F]
 
-str(orig.housing.numeric)
-skim(orig.housing.numeric)
+str(data.numeric)
+skim(data.numeric)
 
-data.housing.cor <- cor(orig.housing.numeric)
+data.housing.cor <- cor(data.numeric)
 
 # Overall correlations, keep as reference.
 
@@ -133,19 +133,14 @@ ggcorrplot(data.housing.cor,
            title = "Correlogram of Housing Variables")
 
 # Variables that have a lot of overlap in explained variance.
-housing.relationships <- orig.housing.numeric[, -c("ThreeSsnPorch", "FirstFlrSF", "GarageYrBlt", 
-                                                   "BsmtUnfSF", "TotalBsmtSF", "logSalePrice", 
-                                                   "LotArea", "KitchenAbvGr", "Fireplaces", "MasVnrArea", 
-                                                   "BsmtFinSF1", "BedroomAbvGr", "SecondFlrSF", "LotFrontage",
-                                                   "BsmtFullBath", "BsmtHalfBath", "BsmtFinSF2", "ScreenPorch", 
-                                                   "WoodDeckSF", "PID", "MiscVal", "MoSold", "PoolArea", 
-                                                   "LowQualFinSF", "SID", "EnclosedPorch", "OpenPorchSF", 
-                                                   "GarageArea")]
+housing.relationships <- data.numeric[, -c("ThreeSsnPorch", "logSalePrice", 
+                                              "ScreenPorch", "WoodDeckSF", "PID", "MiscVal", "MoSold", 
+                                                   "LowQualFinSF", "SID", "EnclosedPorch", "OpenPorchSF")]
 
-housing.relationships <- orig.housing.numeric
+housing.relationships <- housing.relationships
 housing.relationships.cor <- cor(housing.relationships)
 
-str(housing.numeric)
+str(housing.relationships)
 
 # Iterate & Clean
 ggcorrplot(housing.relationships.cor,
@@ -159,8 +154,9 @@ str(housing.relationships)
 
 # Post clean-up data
 
-housing.complete <- cbind(housing.label, housing.relationships)
-housing.complete <- housing.complete[complete.cases(housing.numeric)]
+housing.complete <- cbind(data.label, housing.relationships)
+housing.complete <- housing.complete[complete.cases(housing.relationships)]
+housing.complete <- housing.complete[-1,]
 
 str(housing.complete)
 dim(housing.complete)
@@ -214,7 +210,7 @@ ggbiplot(housing.pca, groups = housing.complete$BldgType)
 
 ggbiplot(housing.pca, groups = housing.complete$YrSold)
 
-# Maybe Useful
+# Custom Attributes, used in further analysis
 
 summary(housing.complete$OverallQual)
 
@@ -262,10 +258,15 @@ plot_tsne_cor(housing.complete.cor, perplexity = 2, learning = 35, iterations = 
 
 # Value/Quality groupings?
 
-perplexity <- 2
-learning <- 25
+perplexity <- 3.5
+learning <- 35
 iterations <- 5000
-tsne <- Rtsne(housing.numeric, dims = 2, perplexity=perplexity, verbose =TRUE, max_iter = iterations, learning = learning)
+tsne <- Rtsne(housing.numeric, dims = 2, 
+              perplexity=perplexity, 
+              verbose = T, 
+              max_iter = iterations, 
+              learning = learning,
+              check_duplicates = F)
 
 tsne.results <- data.table(x = tsne$Y[,1], y = tsne$Y[,2], Attribute = housing.complete$ValueGroup)
 
@@ -320,7 +321,6 @@ plot.hclust.pca(housing.pc, method = "complete", k = 4)
 plot.hclust.pca(housing.pc, method = "average", k = 6)
 plot.hclust.pca(housing.pc, method = "mcquitty", k = 6)
 
-
 ##############################
 # Multidimensional Scaling
 ##############################
@@ -328,7 +328,7 @@ plot.hclust.pca(housing.pc, method = "mcquitty", k = 6)
 housing.dist <- dist(housing.complete)
 
 # k is the number of dim
-fit <- cmdscale(housing.dist, eig=TRUE, k=3)
+fit <- cmdscale(housing.dist, eig=TRUE, k=2)
 fit
 
 ggplot(data.table(x = fit$points[, 1], y = fit$points[, 2]), aes(x, y)) +
@@ -338,17 +338,17 @@ ggplot(data.table(x = fit$points[, 1], y = fit$points[, 2]), aes(x, y)) +
   scale_x_continuous(labels = comma) +
   scale_y_continuous(labels = comma) +
   labs(title = "Value Group ($$$)", subtitle = "Metric MDS", 
-       x = "Dimension 1", y = "Dimension 2", color = "Duration")
+       x = "Dimension 1", y = "Dimension 2", color = "Home Value")
 
 fit2 <- isoMDS(housing.dist, k=2)
 fit2
 
 ggplot(data.table(x = fit2$points[, 1], y = fit2$points[, 2]), aes(x, y)) +
-  geom_point(aes(color = recidivism$durat)) +
+  geom_point(aes(color = housing.complete$ValueGroup)) +
   geom_hline(yintercept = 0, col = "darkred") +
   geom_vline(xintercept = 0, col = "darkred") +
   scale_x_continuous(labels = comma) +
   scale_y_continuous(labels = comma) +  
   labs(title = "Value Group ($$$)", subtitle = "Nonmetric MDS",
-       x = "Dimension 1", y = "Dimension 2", color = "Duration")
+       x = "Dimension 1", y = "Dimension 2", color = "Home Value")
 
