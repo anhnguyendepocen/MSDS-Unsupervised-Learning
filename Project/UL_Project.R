@@ -319,3 +319,36 @@ plot.hclust.pca(housing.pc, method = "ward.D", k = 3)
 plot.hclust.pca(housing.pc, method = "complete", k = 4)
 plot.hclust.pca(housing.pc, method = "average", k = 6)
 plot.hclust.pca(housing.pc, method = "mcquitty", k = 6)
+
+
+##############################
+# Multidimensional Scaling
+##############################
+
+housing.dist <- dist(housing.complete)
+
+# k is the number of dim
+fit <- cmdscale(housing.dist, eig=TRUE, k=3)
+fit
+
+ggplot(data.table(x = fit$points[, 1], y = fit$points[, 2]), aes(x, y)) +
+  geom_point(aes(color = housing.complete$ValueGroup)) +
+  geom_hline(yintercept = 0, col = "darkred") +
+  geom_vline(xintercept = 0, col = "darkred") +
+  scale_x_continuous(labels = comma) +
+  scale_y_continuous(labels = comma) +
+  labs(title = "Value Group ($$$)", subtitle = "Metric MDS", 
+       x = "Dimension 1", y = "Dimension 2", color = "Duration")
+
+fit2 <- isoMDS(housing.dist, k=2)
+fit2
+
+ggplot(data.table(x = fit2$points[, 1], y = fit2$points[, 2]), aes(x, y)) +
+  geom_point(aes(color = recidivism$durat)) +
+  geom_hline(yintercept = 0, col = "darkred") +
+  geom_vline(xintercept = 0, col = "darkred") +
+  scale_x_continuous(labels = comma) +
+  scale_y_continuous(labels = comma) +  
+  labs(title = "Value Group ($$$)", subtitle = "Nonmetric MDS",
+       x = "Dimension 1", y = "Dimension 2", color = "Duration")
+
