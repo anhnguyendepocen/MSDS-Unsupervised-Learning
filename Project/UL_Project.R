@@ -364,6 +364,7 @@ plot.hclust.pca(housing.pc, method = "mcquitty", k = 6)
 # Multidimensional Scaling
 ##############################
 
+# manual toggle to clear out some outliers
 housing.complete <- housing.complete[-c(744, 2140)]
 
 housing.dist <- dist(housing.complete)
@@ -409,7 +410,9 @@ ggplot(data.table(x = fit2$points[, 1], y = fit2$points[, 2]), aes(x, y)) +
 # PCA -> Regression
 ##############################
 
-housing.reg <- data.table(cbind(housing.pca$x[, 1:8], Value = housing.complete$ValueGroup, Quality = housing.complete$QualGroup))
+n.compontents <- 5
+
+housing.reg <- data.table(cbind(housing.pca$x[, 1:n.compontents], Value = housing.complete$ValueGroup, Quality = housing.complete$QualGroup))
 housing.reg$u <- runif(n = nrow(housing.reg), min = 0, max = 1)
 
 split.ratio <- .7
@@ -417,7 +420,7 @@ split.ratio <- .7
 data.train <- housing.reg[u < split.ratio]
 data.test <- housing.reg[u >= split.ratio]
 
-pc.coef <- substr(toString(paste0("PC", seq(1,8), sep = " +", collapse = " ")), 0, 45)
+pc.coef <- toString(paste0(paste0("PC", seq(1,n.compontents - 1), sep = " +", collapse = " ")," PC", n.compontents))
 
 # Value
 
