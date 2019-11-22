@@ -75,43 +75,6 @@ data.housing[, TotalBath := FullBath + HalfBath]
 
 summary(data.housing)
 
-#################
-### PCA
-#################
-
-# Utility
-
-plot.vv <- function( pca, threshold = .8 ) {
-  
-  vv <- cumsum(pca$sdev^2)/sum(pca$sdev^2)
-  vv.y <- head(vv[vv > threshold], 1)
-  vv.x <- which(vv == vv.y)
-  
-  ggplot(data.table(y = vv)[, x := .I], aes(x,y)) + 
-    geom_path(lwd = .8) +
-    geom_point(color = "red", lwd = 4, shape = 1) +
-    geom_vline(xintercept = vv.x, color = "cornflowerblue", lwd = .8, alpha = .8) +
-    geom_hline(yintercept = vv.y, color = "cornflowerblue", lwd = .8, alpha = .8) +
-    labs(title = "Total Variance Explained", 
-         x = "Number of Componenets", 
-         y = "Total Variance Explained")
-}
-
-plot.pca.loadings <- function(pca) {
-  pc.1 <- pca$loadings[,1]; pc.2 <- pca$loadings[,2]
-  
-  colfunc<-colorRampPalette(c("red","yellow","springgreen","royalblue"))
-  
-  pc <- data.table( Name = names(pc.1), X = pc.1, Y = pc.2)
-  pc$col <- colfunc(nrow(pc))
-  
-  ggplot(pc, aes(X, Y)) +
-    geom_text(aes(label = Name, col = col, size = 15)) +
-    labs(x = "Component 1", y = "Component 2") +
-    guides(col = "none", size = "none") +
-    ggtitle("AMES Housing Principal Components")
-}
-
 # Initial split by attribute type
 
 data.numeric.col <- unlist(lapply(data.housing, is.numeric))
@@ -162,11 +125,15 @@ housing.complete <- housing.complete[complete.cases(housing.relationships[!dupes
 str(housing.complete)
 dim(housing.complete)
 
+ggpairs(housing.relationships)
+
 housing.numeric.col <- unlist(lapply(housing.complete, is.numeric))
 housing.numeric <- housing.complete[, housing.numeric.col, with = F]
 housing.label <- housing.complete[, !housing.numeric.col, with = F]
 
 # Custom Attributes, used in further analysis
+
+ncol(housing.relationships) / ncol(housing.complete)
 
 summary(housing.complete$OverallQual)
 
@@ -183,8 +150,6 @@ levels(housing.complete$ValueGroup) <- value.labels$label
 
 # Variable Correlations
 
-housing.complete.cor <- cor(housing.numeric)
-
 corrplot(housing.complete.cor)
 
 housing.num.dim <- dim(housing.complete.cor)
@@ -196,17 +161,56 @@ assertthat::are_equal(isSymmetric(housing.matrix), T)
 
 housing.eigen <- eigen(housing.matrix)
 
+#################
+### PCA
+#################
+
+# Utility
+
+plot.vv <- function( pca, threshold = .8 ) {
+  
+  vv <- cumsum(pca$sdev^2)/sum(pca$sdev^2)
+  vv.y <- head(vv[vv > threshold], 1)
+  vv.x <- which(vv == vv.y)
+  
+  ggplot(data.table(y = vv)[, x := .I], aes(x,y)) + 
+    geom_path(lwd = .8) +
+    geom_point(color = "red", lwd = 4, shape = 1) +
+    geom_vline(xintercept = vv.x, color = "cornflowerblue", lwd = .8, alpha = .8) +
+    geom_hline(yintercept = vv.y, color = "cornflowerblue", lwd = .8, alpha = .8) +
+    labs(title = "Total Variance Explained", 
+         x = "Number of Componenets", 
+         y = "Total Variance Explained")
+}
+
+plot.pca.loadings <- function(pca) {
+  pc.1 <- pca$loadings[,1]; pc.2 <- pca$loadings[,2]
+  
+  colfunc<-colorRampPalette(c("red","yellow","springgreen","royalblue"))
+  
+  pc <- data.table( Name = names(pc.1), X = pc.1, Y = pc.2)
+  pc$col <- colfunc(nrow(pc))
+  
+  ggplot(pc, aes(X, Y)) +
+    geom_text(aes(label = Name, col = col, size = 15)) +
+    labs(x = "Component 1", y = "Component 2") +
+    guides(col = "none", size = "none") +
+    ggtitle("AMES Housing Principal Components")
+}
+
 # PCA -> Cor
 
 summary(housing.pca.cor <- princomp( x = housing.complete.cor, cor = T ))
 
 ggbiplot(housing.pca.cor) +
-  labs(title = "Variable Dimensions")
-
-plot(housing.pca.cor) # std plot
-plot.vv(housing.pca.cor, .8) # cust vv
+  labs(title = "Principal Component Dimensions")
 
 plot.pca.loadings(housing.pca.cor)
+
+plot(housing.pca.cor) # std plot
+
+plot.vv(housing.pca.cor, .8) # cust vv
+
 
 # PCA -> Std 
 
@@ -226,14 +230,42 @@ ggbiplot(housing.pca, groups = housing.complete$BldgType)
 
 ggbiplot(housing.pca, groups = housing.complete$YrSold)
 
-# Custom Attributes
+# custom variables
 
 ggbiplot(housing.pca, ellipse = T, groups = housing.complete$QualGroup) +
   labs(title = "Quality Groups")
 
 ggbiplot(housing.pca, ellipse = T, groups = housing.complete$ValueGroup) +
-  guides(color=guide_legend("Value", labels = comma)) +
   labs(title = "Value Groups")
+
+pc.1 <- housing.pca$rotation[, 1]
+pc.2 <- housing.pca$rotation[, 2]
+
+cbind(pc.1, pc.2)
+
+# Value densities
+
+housing.complete %>%
+  gather(variable, value, -ValueGroup) %>%
+  filter( variable %in% c("OverallQual", "TotalFloorSF", "HouseAge", "Price_Sqft", "OverallCond")) %>%
+  ggplot(aes(y = as.factor(variable),
+             fill = as.factor(ValueGroup),
+             x = percent_rank(value))) +
+  geom_density_ridges() +
+  ggtitle('High Impact Variables') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x = 'variable', y = 'value', fill = 'Home Value')
+
+housing.complete %>%
+  gather(variable, value, -QualGroup) %>%
+  filter( variable %in% c("OverallQual", "TotalFloorSF", "HouseAge", "Price_Sqft", "OverallCond")) %>%
+  ggplot(aes(y = as.factor(variable),
+             fill = as.factor(QualGroup),
+             x = percent_rank(value))) +
+  geom_density_ridges() +
+  ggtitle('High Impact Variables') +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x = 'variable', y = 'value', fill = 'Home Quality')
 
 ##############################
 # t-SNE Analysis
@@ -255,9 +287,14 @@ plot_tsne_cor <- function(cor, perplexity = 1, learning = 20, iterations = 5000,
     theme(legend.position = "none")
 }
 
-plot_tsne_cor(housing.complete.cor, perplexity = 6, learning = 50, iterations = 5000)
-plot_tsne_cor(housing.complete.cor, perplexity = 3, learning = 25, iterations = 5000, "AMES Housing Features")
-plot_tsne_cor(housing.complete.cor, perplexity = 2, learning = 35, iterations = 5000)
+plot_tsne_cor(housing.complete.cor, perplexity = 6, 
+              learning = 50, iterations = 5000, "Housing Feature Similarities")
+
+plot_tsne_cor(housing.complete.cor, perplexity = 3, 
+              learning = 25, iterations = 5000, "Housing Feature Similarities")
+
+plot_tsne_cor(housing.complete.cor, perplexity = 2, 
+              learning = 35, iterations = 5000, "Housing Feature Similarities")
 
 # Value/Quality groupings?
 
@@ -275,14 +312,14 @@ tsne.results <- data.table(x = tsne$Y[,1], y = tsne$Y[,2], Attribute = housing.c
 
 ggplot(tsne.results, aes(x, y, label = Attribute)) +
   geom_point(aes(col = Attribute), size = 3) +
-  labs(title = paste("t-SNE: P=", perplexity, " L=", learning, "Iterations=", iterations ), x = "tSNE dimension 1", y = "tSNE dimension 2") +
+  labs(title = "t-SNE Value Clusters", x = "tSNE dimension 1", y = "tSNE dimension 2") +
   theme(legend.position = "bottom")
 
 tsne.results <- data.table(x = tsne$Y[,1], y = tsne$Y[,2], Attribute = housing.complete$QualGroup)
 
 ggplot(tsne.results, aes(x, y, label = Attribute)) +
   geom_point(aes(col = Attribute), size = 3) +
-  labs(title = paste("t-SNE: P=", perplexity, " L=", learning, "Iterations=", iterations ), x = "tSNE dimension 1", y = "tSNE dimension 2") +
+  labs(title = "t-SNE Quality Clusters", x = "tSNE dimension 1", y = "tSNE dimension 2") +
   theme(legend.position = "bottom")
 
 
@@ -320,7 +357,7 @@ plot.hclust.pca <- function( data, method = "complete", k = 3 ) {
 ?hclust
 
 plot.hclust.pca(housing.pc, method = "ward.D", k = 3)
-plot.hclust.pca(housing.pc, method = "complete", k = 4)
+plot.hclust.pca(housing.pc, method = "complete", k = 8)
 plot.hclust.pca(housing.pc, method = "average", k = 6)
 plot.hclust.pca(housing.pc, method = "mcquitty", k = 6)
 
@@ -328,11 +365,15 @@ plot.hclust.pca(housing.pc, method = "mcquitty", k = 6)
 # Multidimensional Scaling
 ##############################
 
+housing.complete <- housing.complete[-c(744, 2140)]
+
 housing.dist <- dist(housing.complete)
 
 # k is the number of dim
 fit <- cmdscale(housing.dist, eig=TRUE, k=2)
 fit
+
+# which.min(fit$points[, 2])
 
 ggplot(data.table(x = fit$points[, 1], y = fit$points[, 2]), aes(x, y)) +
   geom_point(aes(color = housing.complete$ValueGroup)) +
@@ -340,8 +381,17 @@ ggplot(data.table(x = fit$points[, 1], y = fit$points[, 2]), aes(x, y)) +
   geom_vline(xintercept = 0, col = "darkred") +
   scale_x_continuous(labels = comma) +
   scale_y_continuous(labels = comma) +
-  labs(title = "Value Group ($$$)", subtitle = "Metric MDS", 
+  labs(title = "Value Group", subtitle = "Metric MDS", 
        x = "Dimension 1", y = "Dimension 2", color = "Home Value")
+
+ggplot(data.table(x = fit$points[, 1], y = fit$points[, 2]), aes(x, y)) +
+  geom_point(aes(color = housing.complete$QualGroup)) +
+  geom_hline(yintercept = 0, col = "darkred") +
+  geom_vline(xintercept = 0, col = "darkred") +
+  scale_x_continuous(labels = comma) +
+  scale_y_continuous(labels = comma) +
+  labs(title = "Quality Group", subtitle = "Metric MDS", 
+       x = "Dimension 1", y = "Dimension 2", color = "Quality Group")
 
 fit2 <- isoMDS(housing.dist, k=2)
 fit2
@@ -352,6 +402,6 @@ ggplot(data.table(x = fit2$points[, 1], y = fit2$points[, 2]), aes(x, y)) +
   geom_vline(xintercept = 0, col = "darkred") +
   scale_x_continuous(labels = comma) +
   scale_y_continuous(labels = comma) +  
-  labs(title = "Value Group ($$$)", subtitle = "Nonmetric MDS",
+  labs(title = "Value Group", subtitle = "Nonmetric MDS",
        x = "Dimension 1", y = "Dimension 2", color = "Home Value")
 

@@ -16,6 +16,7 @@ library(dendextend)
 library(fpc)
 library(cluster)
 library(maptree)
+library(ggridges)
 
 theme_set(theme_light())
 

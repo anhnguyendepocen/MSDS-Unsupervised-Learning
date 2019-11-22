@@ -132,7 +132,7 @@ colnames(pc.1.long) <- c("Symbol", "PC1")
 pc.2.long <- data.table(melt(pc.2), keep.rownames = T)
 colnames(pc.2.long) <- c("Symbol", "PC2")
 
-symbol.info <- merge(symbol.info, pc.1.long, by = c("Symbol"))
+symbol.info <- merge(symbol.info, pc.1.long, by = c("Symbol"))s
 symbol.info <- merge(symbol.info, pc.2.long, by = c("Symbol"))
 
 # Plot PCA by Symbol, colored by Industry
