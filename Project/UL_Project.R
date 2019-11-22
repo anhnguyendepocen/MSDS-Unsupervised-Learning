@@ -125,7 +125,7 @@ housing.complete <- housing.complete[complete.cases(housing.relationships[!dupes
 str(housing.complete)
 dim(housing.complete)
 
-ggpairs(housing.relationships)
+# ggpairs(housing.relationships)
 
 housing.numeric.col <- unlist(lapply(housing.complete, is.numeric))
 housing.numeric <- housing.complete[, housing.numeric.col, with = F]
@@ -210,7 +210,6 @@ plot.pca.loadings(housing.pca.cor)
 plot(housing.pca.cor) # std plot
 
 plot.vv(housing.pca.cor, .8) # cust vv
-
 
 # PCA -> Std 
 
@@ -405,3 +404,60 @@ ggplot(data.table(x = fit2$points[, 1], y = fit2$points[, 2]), aes(x, y)) +
   labs(title = "Value Group", subtitle = "Nonmetric MDS",
        x = "Dimension 1", y = "Dimension 2", color = "Home Value")
 
+
+##############################
+# PCA -> Regression
+##############################
+
+housing.reg <- data.table(cbind(housing.pca$x[, 1:8], Value = housing.complete$ValueGroup, Quality = housing.complete$QualGroup))
+housing.reg$u <- runif(n = nrow(housing.reg), min = 0, max = 1)
+
+split.ratio <- .7
+
+data.train <- housing.reg[u < split.ratio]
+data.test <- housing.reg[u >= split.ratio]
+
+pc.coef <- substr(toString(paste0("PC", seq(1,8), sep = " +", collapse = " ")), 0, 45)
+
+# Value
+
+summary(value.fit <- lm(as.formula(paste("Value ~", pc.coef)), data = data.train))
+
+value.test <- data.test[, -c("Quality", "u")]
+
+value.test$Pred <- round(predict(value.fit, newdata = value.test))
+
+value.test[, Correct := Value == Pred]
+
+value.result <- merge(value.test, data.table(Desc = levels(housing.complete$ValueGroup))[, .(Desc, N = .I)], 
+                      by.x = "Value", by.y = "N")
+
+value.pct <- sum(value.test$Correct) / nrow(value.test)
+
+ggplot(value.result[, .(Label = Desc, Correct = sum(Correct) / .N, Count = .N / nrow(value.test)), by = c("Value", "Desc")]) +
+  geom_bar(aes(Desc, Correct, fill = Value), stat = "identity") +
+  geom_density(aes(Value, Count), col = "darkorange", stat = "identity", lwd = .8, fill = "darkorange", alpha = .35) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Value Forecast Accuracy by Category", x = "Value Category", y = "Percent Correct", 
+       subtitle = paste0("Aggregate Forecast Accuracy: ", round(value.pct * 100, 2), "%")) +
+  theme(legend.position = "none")
+
+# Quality
+
+summary(quality.fit <- lm(as.formula(paste("Quality ~", pc.coef)), data = data.train))
+
+quality.test <- data.test[, -c("Value", "u")]
+
+quality.test$Pred <- round(predict(quality.fit, newdata = quality.test))
+
+quality.test[, Correct := Quality == Pred]
+
+quality.pct <- sum(quality.test$Correct) / nrow(quality.test)
+
+ggplot(quality.test[, .(Correct = sum(Correct) / .N, Count = .N / nrow(quality.test)), by = Quality]) +
+  geom_bar(aes(Quality, Correct, fill = Quality), stat = "identity") +
+  geom_density(aes(Quality, Count), col = "darkorange", stat = "identity", lwd = .8, fill = "darkorange", alpha = .35) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Quality Forecast Accuracy by Category", x = "Quality Category", y = "Percent Correct", 
+       subtitle = paste0("Aggregate Forecast Accuracy: ", round(quality.pct * 100, 2), "%")) +
+  theme(legend.position = "none")
