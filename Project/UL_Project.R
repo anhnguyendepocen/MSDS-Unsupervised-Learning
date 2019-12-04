@@ -131,6 +131,8 @@ housing.numeric.col <- unlist(lapply(housing.complete, is.numeric))
 housing.numeric <- housing.complete[, housing.numeric.col, with = F]
 housing.label <- housing.complete[, !housing.numeric.col, with = F]
 
+housing.complete.cor <- cor(housing.numeric)
+
 # Custom Attributes, used in further analysis
 
 ncol(housing.relationships) / ncol(housing.complete)
@@ -393,8 +395,8 @@ ggplot(data.table(x = fit$points[, 1], y = fit$points[, 2]), aes(x, y)) +
   labs(title = "Quality Group", subtitle = "Metric MDS", 
        x = "Dimension 1", y = "Dimension 2", color = "Quality Group")
 
-fit2 <- isoMDS(housing.dist, k=2)
-fit2
+# fit2 <- isoMDS(housing.dist, k=2)
+# fit2
 
 ggplot(data.table(x = fit2$points[, 1], y = fit2$points[, 2]), aes(x, y)) +
   geom_point(aes(color = housing.complete$ValueGroup)) +
